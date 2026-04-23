@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercado Inteligente - Brainrots</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111418;
+            --card-bg: #1e2329;
+            --primary: #58a6ff;
+            --text-main: #c9d1d9;
+            --text-title: #ffffff;
+            --text-muted: #8b949e;
+            --border: #2d333b;
+            --price-color: #ffffff;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding-top: 100px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #161b22;
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 10px 0;
+        }
+
+        .filters-container {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-sizing: border-box;
+        }
+
+        select,
+        input[type="text"] {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-color);
+            color: var(--text-title);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+
+        select:focus,
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+
+        select:disabled,
+        input[type="text"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #2d333b;
+            color: var(--text-title);
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 13px;
+        }
+
+        button:hover {
+            background: #444c56;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .results-info {
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* GRID DE CARTÕES HORIZONTAIS */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .card:hover {
+            border-color: var(--border);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* LADO ESQUERDO: CONTÊINER DA IMAGEM */
+        .card-img-side {
+            width: 110px;
+            background: rgba(0, 0, 0, 0.15);
+            border-right: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .card-img-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* LADO DIREITO: INFORMAÇÕES DO TEXTO */
+        .card-info-side {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-sizing: border-box;
+        }
+
+        /* Atributos do Topo (sutil) */
+        .card-attrs {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: capitalize;
+            margin-bottom: 4px;
+        }
+
+        /* Título Principal (Nome da Oferta) */
+        .item-title {
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-title);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ÁREA DO VENDEDOR (Nome na esquerda, Review na direita) */
+        .seller-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 12px;
+        }
+
+        .seller-name {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .seller-feedback {
+            font-size: 13px;
+            color: var(--text-title);
+            font-weight: 600;
+        }
+
+        .star-icon {
+            color: #f59e0b;
+            font-size: 14px;
+        }
+
+        /* ÁREA DO PREÇO E TEMPO (Fundo) */
+        .bottom-block {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .card-price {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--price-color);
+        }
+
+        .card-delivery {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .loader {
+            text-align: center;
+            font-size: 16px;
+            color: var(--primary);
+            display: none;
+            margin-top: 50px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="filters-container">
+            <select id="raritySelect" onchange="atualizarBrainrots()">
+                <option value="">Carregando...</option>
+            </select>
+
+            <input type="text" id="brainrotInput" list="brainrotList" placeholder="Aguarde..." disabled
+                autocomplete="off" onfocus="this.value=''" onclick="this.value=''">
+            <datalist id="brainrotList"></datalist>
+
+            <select id="msSelect">
+                <option value="">Qualquer M/S</option>
+            </select>
+
+            <select id="mutationSelect">
+                <option value="">Qualquer Mutação</option>
+            </select>
+
+            <button onclick="buscarOfertas()">Filtrar</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="results-info" id="resultsInfo">Selecione os filtros acima para escanear a Eldorado.</div>
+        <div class="loader" id="loader">⏳ Escaneando Mercado...</div>
+        <div class="grid" id="marketGrid"></div>
+    </div>
+
+    <script>
+        // =========================================================
+        // LINK DO SEU GITHUB - MANTENHA A LÓGICA ANTIGA
+        // =========================================================
+        const GITHUB_BASE = "/images/";
+
+        let schemaGlobal = null;
+        let filtersGlobal = null;
+
+        document.getElementById('brainrotInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') buscarOfertas();
+        });
+
+        async function carregarDadosIniciais() {
+            try {
+                const resSchema = await fetch('/api/schema');
+                const schemaJson = await resSchema.json();
+                if (schemaJson.success) schemaGlobal = schemaJson.data;
+
+                const resFilters = await fetch('/api/filters');
+                const filtersJson = await resFilters.json();
+                if (filtersJson.success) filtersGlobal = filtersJson.data;
+
+                montarDropdownsIniciais();
+                buscarOfertas();
+            } catch (err) {
+                console.error("Erro ao carregar dados da API:", err);
+            }
+        }
+
+        function montarDropdownsIniciais() {
+            const raritySelect = document.getElementById('raritySelect');
+
+            if (schemaGlobal) {
+                const rarityNode = schemaGlobal.tradeEnvironments.find(t => t.name === "Item Type" && t.value === "Brainrot");
+                raritySelect.innerHTML = '<option value="">Todas as Raridades</option>';
+
+                if (rarityNode && rarityNode.childTradeEnvironments) {
+                    rarityNode.childTradeEnvironments.forEach(rarity => {
+                        raritySelect.innerHTML += `<option value="${rarity.value}" data-id="${rarity.id}">${rarity.value}</option>`;
+                    });
+                }
+            }
+
+            if (filtersGlobal) {
+                const msSelect = document.getElementById('msSelect');
+                const mutSelect = document.getElementById('mutationSelect');
+
+                msSelect.innerHTML = '<option value="">Qualquer M/S</option>';
+                mutSelect.innerHTML = '<option value="">Qualquer Mutação</option>';
+
+                const msData = filtersGlobal.find(f => f.id === "steal-a-brainrot-ms");
+                if (msData && msData.selectValues) {
+                    msData.selectValues.forEach(val => {
+                        msSelect.innerHTML += `<option value="${val.id}">${val.name}</option>`;
+                    });
+                }
+
+                const mutData = filtersGlobal.find(f => f.id === "steal-a-brainrot-mutations");
+                if (mutData && mutData.selectValues) {
+                    mutData.selectValues.forEach(val => {
+                        mutSelect.innerHTML += `<option value="${val.id}">${val.name}</option>`;
+                    });
+                }
+            }
+
+            const secretOption = Array.from(raritySelect.options).find(opt => opt.value === 'Secret');
+            if (secretOption) {
+                raritySelect.value = 'Secret';
+                atualizarBrainrots();
+            }
+        }
+
+        function atualizarBrainrots() {
+            const raritySelect = document.getElementById('raritySelect');
+            const brainrotInput = document.getElementById('brainrotInput');
+            const brainrotList = document.getElementById('brainrotList');
+
+            brainrotList.innerHTML = '';
+            brainrotInput.value = '';
+
+            const selectedOption = raritySelect.options[raritySelect.selectedIndex];
+            const rarityId = selectedOption ? selectedOption.getAttribute('data-id') : null;
+
+            if (!rarityId || !schemaGlobal) {
+                brainrotInput.disabled = true;
+                brainrotInput.placeholder = "Escolha a Raridade...";
+                return;
+            }
+
+            const rarityNode = schemaGlobal.tradeEnvironments[0].childTradeEnvironments.find(r => r.id === rarityId);
+
+            if (rarityNode && rarityNode.childTradeEnvironments) {
+                const itens = rarityNode.childTradeEnvironments.sort((a, b) => a.value.localeCompare(b.value));
+
+                itens.forEach(item => {
+                    brainrotList.innerHTML += `<option value="${item.value}">`;
+                });
+
+                brainrotInput.disabled = false;
+                brainrotInput.placeholder = "Digite ou escolha o Item...";
+            }
+        }
+
+        async function buscarOfertas() {
+            const grid = document.getElementById('marketGrid');
+            const info = document.getElementById('resultsInfo');
+            const loader = document.getElementById('loader');
+
+            const rarity = document.getElementById('raritySelect').value;
+            const brainrot = document.getElementById('brainrotInput').value;
+            const ms = document.getElementById('msSelect').value;
+            const mutation = document.getElementById('mutationSelect').value;
+
+            grid.innerHTML = '';
+            loader.style.display = 'block';
+            info.textContent = "Pesquisando...";
+
+            try {
+                let url = `/api/market?`;
+                if (rarity) url += `rarity=${encodeURIComponent(rarity)}&`;
+                if (brainrot) url += `brainrot=${encodeURIComponent(brainrot)}&`;
+                if (ms) url += `ms=${encodeURIComponent(ms)}&`;
+                if (mutation) url += `mutation=${encodeURIComponent(mutation)}`;
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                loader.style.display = 'none';
+
+                if (!result.success) {
+                    info.textContent = `❌ Erro: ${result.message}`;
+                    return;
+                }
+
+                const ofertas = result.data.results;
+                if (!ofertas || ofertas.length === 0) {
+                    info.textContent = `Nenhuma oferta bate com esses filtros.`;
+                    return;
+                }
+
+                info.textContent = `${result.data.totalOriginal || ofertas.length} itens encontrados no mercado.`;
+
+                ofertas.forEach(item => {
+                    const offer = item.offer;
+                    let msValue = "N/A", mutationValue = "N/A", exactBrainrotName = "Desconhecido";
+
+                    if (offer.tradeEnvironmentValues) {
+                        const brainrotEnv = offer.tradeEnvironmentValues.find(t => t.name === "Brainrot");
+                        if (brainrotEnv) exactBrainrotName = brainrotEnv.value;
+                    }
+
+                    if (offer.attributes) {
+                        const msAttr = offer.attributes.find(a => a.id === 'steal-a-brainrot-ms');
+                        if (msAttr) msValue = msAttr.value.name;
+
+                        const mutAttr = offer.attributes.find(a => a.id === 'steal-a-brainrot-mutations');
+                        if (mutAttr) mutationValue = mutAttr.value.name;
+                    }
+
+                    // Preço
+                    const precoFinal = offer.pricePerUnitInUSD ? offer.pricePerUnitInUSD.amount : offer.pricePerUnit.amount;
+
+                    // 🔥 IMAGEM DIRETO DO SERVIDOR DA ELDORADO
+                    let imgUrl = "https://placehold.co/120x120?text=Sem+Foto";
+                    if (offer.mainOfferImage && offer.mainOfferImage.smallImage) {
+                        // Pegamos a base do servidor deles e juntamos com o arquivo do anúncio
+                        imgUrl = "https://assetsdelivery.eldorado.gg/v7/_offers-v2_/" + offer.mainOfferImage.smallImage;
+                    } else if (offer.mainOfferImage && offer.mainOfferImage.originalSizeImage) {
+                        imgUrl = "https://assetsdelivery.eldorado.gg/v7/_offers-v2_/" + offer.mainOfferImage.originalSizeImage;
+                    }
+
+                    // Reviews e Vendedor
+                    const feedbackScore = item.userOrderInfo && item.userOrderInfo.feedbackScore ? Math.floor(item.userOrderInfo.feedbackScore) : 0;
+                    const reviewsCount = item.userOrderInfo && item.userOrderInfo.ratingCount ? item.userOrderInfo.ratingCount.toLocaleString('pt-BR') : 0;
+
+                    // O Novo Card com Layout Horizontal
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="card-img-side">
+                            <div class="card-img-container">
+                                <img src="${imgUrl}" class="card-img" onerror="this.onerror=null; this.src='https://placehold.co/120x120?text=Sem+Foto';">
+                            </div>
+                        </div>
+                        <div class="card-info-side">
+                            <div class="card-attrs">Brainrot · Secret · ${exactBrainrotName} · ${msValue} · ${mutationValue}</div>
+                            <div class="item-title">${offer.offerTitle}</div>
+                            
+                            <div class="seller-row">
+                                <div class="seller-name">👤 ${item.user.username}</div>
+                                <div class="seller-feedback"><span class="star-icon">★</span> ${feedbackScore}% (${reviewsCount})</div>
+                            </div>
+                            
+                            <div class="bottom-block">
+                                <div class="card-price">$${precoFinal.toFixed(2)}</div>
+                                <div class="card-delivery">🕒 20 min</div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+            } catch (error) {
+                loader.style.display = 'none';
+                info.textContent = "❌ Falha ao conectar.";
+            }
+        }
+
+        carregarDadosIniciais();
+    </script>
+</body>
+
+</html>
