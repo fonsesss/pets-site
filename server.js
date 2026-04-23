@@ -76,10 +76,38 @@ async function getIdToken() {
 
 const upload = multer({ dest: 'uploads/' });
 const app = express();
-//app.use(express.static('public'));
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/market.html');
-});
+
+// =====================================================================
+// 🚀 LÓGICA DE DETECÇÃO WEB VS COMPUTADOR LOCAL
+// =====================================================================
+const isWeb = process.env.PORT ? true : false;
+
+if (isWeb) {
+    console.log("🌐 Servidor iniciado na Nuvem (Render) - MODO VITRINE");
+    
+    // Na nuvem, bloqueamos o acesso direto aos outros arquivos
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'market.html'));
+    });
+    
+    app.get('/market.html', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'market.html'));
+    });
+
+} else {
+    console.log("💻 Servidor iniciado no Computador - MODO POSTAGEM");
+    
+    // No seu PC, a pasta toda é liberada
+    app.use(express.static('public'));
+
+    // No seu PC, a rota principal abre a página de criação de anúncios
+    app.get('/', (req, res) => {
+        // ⚠️ IMPORTANTE: Se a sua página de postagem tiver outro nome, mude o 'index.html' abaixo!
+        res.sendFile(path.join(__dirname, 'public', 'index.html')); 
+    });
+}
+// =====================================================================
+
 
 app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
     let tempImagePath = null;
@@ -209,7 +237,7 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
     }
 });
 
-// --- NOVA ROTA: BUSCAR O SCHEMA (DROPDOWNS) DA ELDORADO ---
+// --- ROTA: BUSCAR O SCHEMA (DROPDOWNS) DA ELDORADO ---
 app.get('/api/schema', async (req, res) => {
     try {
         const response = await fetch('https://www.eldorado.gg/api/library/259/CustomItem?locale=en-US', {
@@ -222,19 +250,15 @@ app.get('/api/schema', async (req, res) => {
     }
 });
 
-// --- ROTA DE BUSCA ATUALIZADA (COM MÚLTIPLOS FILTROS E ORDENAÇÃO) ---
+// --- ROTA DE BUSCA DO MERCADO ---
 app.get('/api/market', async (req, res) => {
     try {
         const { brainrot, rarity, ms, mutation } = req.query;
 
-        // 1. Começamos com a URL base que você descobriu que funciona
         let url = 'https://www.eldorado.gg/api/v1/item-management/offers?gameId=259&category=CustomItem&pageIndex=1&pageSize=50&useMinPurchasePrice=true&offerSortingCriterion=Price&isAscending=true';
 
-        // 2. Adicionamos os filtros DIRETAMENTE na URL da Eldorado
         if (rarity) url += `&tradeEnvironmentValue1=${encodeURIComponent(rarity)}`;
         if (brainrot) url += `&tradeEnvironmentValue2=${encodeURIComponent(brainrot)}`;
-
-        // Aqui está o segredo: usar os IDs que a Eldorado espera
         if (ms) url += `&steal-a-brainrot-ms=${encodeURIComponent(ms)}`;
         if (mutation) url += `&steal-a-brainrot-mutations=${encodeURIComponent(mutation)}`;
 
@@ -251,9 +275,6 @@ app.get('/api/market', async (req, res) => {
         if (!response.ok) throw new Error(`Erro na Eldorado: ${response.status}`);
 
         const data = await response.json();
-
-        // Agora não precisamos mais filtrar manualmente no JS, 
-        // pois a Eldorado já mandou os resultados certos!
         res.json({ success: true, data: data });
 
     } catch (error) {
@@ -262,7 +283,7 @@ app.get('/api/market', async (req, res) => {
     }
 });
 
-// --- NOVA ROTA: BUSCAR OS FILTROS DE M/S E MUTAÇÃO ---
+// --- ROTA: BUSCAR OS FILTROS DE M/S E MUTAÇÃO ---
 app.get('/api/filters', async (req, res) => {
     try {
         const response = await fetch('https://www.eldorado.gg/api/library/259/CustomItem/attributes/filters?locale=en-US', {
