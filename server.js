@@ -1,10 +1,10 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const multer = require('multer'); 
+const multer = require('multer');
 const { Amplify } = require('aws-amplify');
 const { signIn, fetchAuthSession } = require('aws-amplify/auth');
-const BRAINROTS = require('./brainrots'); 
+const BRAINROTS = require('./brainrots');
 
 // Configurações do seu bot
 const USERNAME = 'fonsecafnz@gmail.com';
@@ -62,7 +62,7 @@ async function getIdToken() {
     try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) return session.tokens.idToken.toString();
-    } catch (e) {}
+    } catch (e) { }
 
     try {
         await signIn({ username: USERNAME, password: PASSWORD });
@@ -83,8 +83,8 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
 
     try {
         if (!req.file) throw new Error("Você esqueceu de enviar a imagem do item!");
-        
-        tempImagePath = req.file.path; 
+
+        tempImagePath = req.file.path;
         const originalName = req.file.originalname;
         const { itemName, gameValueInput, mutationId, priceInput } = req.body;
 
@@ -108,7 +108,7 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
         const idToken = await getIdToken();
         const formData = new FormData();
         const fileBuffer = fs.readFileSync(tempImagePath);
-        
+
         const ext = path.extname(originalName).toLowerCase();
         let mimeType = 'image/jpeg';
         if (ext === '.png') mimeType = 'image/png';
@@ -121,11 +121,11 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
             headers: { 'User-Agent': USER_AGENT, 'Cookie': `__Host-EldoradoIdToken=${idToken}` },
             body: formData
         });
-        
+
         // Proteção contra erro de JSON no upload de imagem
         const imgText = await imgRes.text();
         if (!imgRes.ok) throw new Error(`Falha na imagem. Eldorado retornou: ${imgText}`);
-        
+
         let imgData;
         try {
             imgData = JSON.parse(imgText);
@@ -134,10 +134,10 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
         }
 
         const paths = Array.isArray(imgData) ? imgData : imgData.localPaths;
-        const uploadedImage = { 
-            smallImage: paths[0].replace('/offerimages/', ''), 
-            largeImage: paths[1].replace('/offerimages/', ''), 
-            originalSizeImage: paths[2].replace('/offerimages/', '') 
+        const uploadedImage = {
+            smallImage: paths[0].replace('/offerimages/', ''),
+            largeImage: paths[1].replace('/offerimages/', ''),
+            originalSizeImage: paths[2].replace('/offerimages/', '')
         };
 
         // 3. Criar Payload
@@ -177,10 +177,10 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
                 headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT, 'Cookie': `__Host-EldoradoIdToken=${idToken}` },
                 body: JSON.stringify(payload)
             });
-            
+
             // Lemos o resultado como texto cru para NUNCA dar erro de "JSON input"
             responseText = await result.text();
-            
+
             // Se a rota existir (diferente de 404), a gente para o loop
             if (result.status !== 404) {
                 finalStatus = result.ok;
@@ -193,7 +193,7 @@ app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
         } else {
             // Se não der erro 200 OK, tenta formatar o erro para ficar bonito na tela
             let errMsg = responseText;
-            try { errMsg = JSON.parse(responseText); errMsg = JSON.stringify(errMsg); } catch(e) {}
+            try { errMsg = JSON.parse(responseText); errMsg = JSON.stringify(errMsg); } catch (e) { }
             res.status(400).json({ success: false, message: `Erro Eldorado: ${errMsg}` });
         }
 
@@ -223,14 +223,14 @@ app.get('/api/schema', async (req, res) => {
 app.get('/api/market', async (req, res) => {
     try {
         const { brainrot, rarity, ms, mutation } = req.query;
-        
+
         // 1. Começamos com a URL base que você descobriu que funciona
         let url = 'https://www.eldorado.gg/api/v1/item-management/offers?gameId=259&category=CustomItem&pageIndex=1&pageSize=50&useMinPurchasePrice=true&offerSortingCriterion=Price&isAscending=true';
-        
+
         // 2. Adicionamos os filtros DIRETAMENTE na URL da Eldorado
         if (rarity) url += `&tradeEnvironmentValue1=${encodeURIComponent(rarity)}`;
         if (brainrot) url += `&tradeEnvironmentValue2=${encodeURIComponent(brainrot)}`;
-        
+
         // Aqui está o segredo: usar os IDs que a Eldorado espera
         if (ms) url += `&steal-a-brainrot-ms=${encodeURIComponent(ms)}`;
         if (mutation) url += `&steal-a-brainrot-mutations=${encodeURIComponent(mutation)}`;
@@ -238,17 +238,17 @@ app.get('/api/market', async (req, res) => {
         console.log("🔗 Solicitando URL:", url);
 
         const response = await fetch(url, {
-            headers: { 
-                'Accept': 'application/json', 
+            headers: {
+                'Accept': 'application/json',
                 'User-Agent': USER_AGENT,
-                'Cookie': '__Host-EldoradoCurrency=USD;' 
+                'Cookie': '__Host-EldoradoCurrency=USD;'
             }
         });
 
         if (!response.ok) throw new Error(`Erro na Eldorado: ${response.status}`);
 
         const data = await response.json();
-        
+
         // Agora não precisamos mais filtrar manualmente no JS, 
         // pois a Eldorado já mandou os resultados certos!
         res.json({ success: true, data: data });
@@ -272,4 +272,8 @@ app.get('/api/filters', async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('🚀 Painel rodando em http://localhost:3000'));
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
