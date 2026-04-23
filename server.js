@@ -76,7 +76,10 @@ async function getIdToken() {
 
 const upload = multer({ dest: 'uploads/' });
 const app = express();
-app.use(express.static('public'));
+//app.use(express.static('public'));
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/market.html');
+});
 
 app.post('/api/create-offer', upload.single('imageFile'), async (req, res) => {
     let tempImagePath = null;
