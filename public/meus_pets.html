@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espionagem Eldorado - Meus Pets</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111418;
+            --card-bg: #1e2329;
+            --primary: #58a6ff;
+            --text-main: #c9d1d9;
+            --text-title: #ffffff;
+            --text-muted: #8b949e;
+            --border: #2d333b;
+            --price-color: #ffffff;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding-top: 80px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #161b22;
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 15px 0;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--text-title);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            overflow: hidden;
+            height: 100%;
+            transition: border-left 0.3s ease;
+        }
+
+        .card-img-side {
+            width: 110px;
+            background: rgba(0, 0, 0, 0.15);
+            border-right: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .card-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .card-info-side {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-sizing: border-box;
+        }
+
+        .card-attrs {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: capitalize;
+            margin-bottom: 4px;
+        }
+
+        .item-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--text-title);
+            margin: 0;
+        }
+
+        .seller-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .my-price-lbl {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .card-price {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--price-color);
+        }
+
+        .comparison-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: #111418;
+            border-radius: 6px;
+            border-left: 4px solid var(--border);
+        }
+
+        .loader {
+            text-align: center;
+            font-size: 16px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="loader" id="loader">⏳ Puxando seus pets da conta da Eldorado...</div>
+        <div class="grid" id="marketGrid"></div>
+    </div>
+
+    <script>
+        async function carregarMeusPets() {
+            const grid = document.getElementById('marketGrid');
+            const loader = document.getElementById('loader');
+
+            try {
+                const res = await fetch('/api/my-offers');
+                const data = await res.json();
+
+                if (!data.success) {
+                    loader.innerHTML = `❌ Erro de Autenticação: Verifique o seu arquivo .env`;
+                    return;
+                }
+
+                const myOffers = data.data.results;
+                if (!myOffers || myOffers.length === 0) {
+                    loader.innerHTML = "Você não tem nenhum anúncio ativo no momento.";
+                    return;
+                }
+
+                loader.style.display = 'none';
+
+                myOffers.forEach(item => {
+                    let brainrotName = "Desconhecido", rarity = "N/A";
+                    let msFilter = "", mutFilter = "", msLabel = "N/A", mutLabel = "N/A";
+                    let myExactMs = null; // <--- VALOR EXATO RECUPERADO AQUI
+
+                    if (item.tradeEnvironmentValues) {
+                        const b = item.tradeEnvironmentValues.find(t => t.name === "Brainrot");
+                        if (b) brainrotName = b.value;
+                        const r = item.tradeEnvironmentValues.find(t => t.name === "Rarity");
+                        if (r) rarity = r.value;
+                    }
+
+                    if (item.attributes) {
+                        const m = item.attributes.find(a => a.id === 'steal-a-brainrot-ms');
+                        if (m && m.value) { msFilter = m.value.id; msLabel = m.value.name; }
+
+                        // PEGA O VALOR NUMÉRICO (EX: 180)
+                        const mNum = item.attributes.find(a => a.id === 'steal-a-brainrot-ms-numeric');
+                        if (mNum) { myExactMs = Number(mNum.value); }
+
+                        const mut = item.attributes.find(a => a.id === 'steal-a-brainrot-mutations');
+                        if (mut && mut.value) { mutFilter = mut.value.id; mutLabel = mut.value.name; }
+                    }
+
+                    const myPrice = item.pricePerUnitInUSD ? item.pricePerUnitInUSD.amount : item.pricePerUnit.amount;
+                    const isActive = item.offerState === "Active";
+                    const stateColor = isActive ? "#10b981" : "#ef4444";
+
+                    let imgUrl = "https://placehold.co/120x120?text=Sem+Foto";
+                    if (item.mainOfferImage && item.mainOfferImage.smallImage) {
+                        imgUrl = "https://assetsdelivery.eldorado.gg/v7/_offers-v2_/" + item.mainOfferImage.smallImage + "?q=40";
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.id = `card-${item.id}`;
+                    card.innerHTML = `
+                        <div class="card-img-side">
+                            <div class="card-img-container"><img src="${imgUrl}" class="card-img"></div>
+                        </div>
+                        <div class="card-info-side">
+                            <div class="card-attrs">${rarity} · ${myExactMs || msLabel} M/s · ${mutLabel}</div>
+                            <div class="item-title">${brainrotName}</div>
+                            
+                            <div class="seller-row">
+                                <div class="my-price-lbl">Seu Preço:</div>
+                                <div class="card-price">$${myPrice.toFixed(2)}</div>
+                            </div>
+
+                            <div class="comparison-box" id="comp-${item.id}">
+                                <span style="color:var(--primary); font-size:12px;">⏳ Analisando mercado...</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+
+                    if (isActive) {
+                        const myMutationId = mutFilter ? mutFilter.toLowerCase() : 'none';
+                        const hasMutation = myMutationId !== 'none';
+
+                        const searchParams = {
+                            rarity: rarity,
+                            brainrot: brainrotName,
+                            ms: msFilter
+                        };
+
+                        // Lógica: Se o seu pet tem mutação, procura só aquela mutação.
+                        // Se for "None", deixa aberto para ver se alguém com mutação está mais barato que o seu limpo.
+                        if (hasMutation) {
+                            searchParams.mutation = myMutationId;
+                        }
+
+                        const params = new URLSearchParams(searchParams);
+
+                        fetch('/api/market?' + params.toString())
+                            .then(r => r.json())
+                            .then(market => {
+                                const box = document.getElementById(`comp-${item.id}`);
+                                const cardElement = document.getElementById(`card-${item.id}`);
+
+                                if (!market.success || !market.data.results) {
+                                    box.innerHTML = "Erro na busca."; return;
+                                }
+
+                                const allCompetitors = market.data.results.filter(m => m.offer.userId !== item.userId);
+                                const getPrice = (off) => off.pricePerUnitInUSD ? off.pricePerUnitInUSD.amount : off.pricePerUnit.amount;
+
+                                if (allCompetitors.length === 0) {
+                                    box.innerHTML = `<span style="color:#10b981; font-weight:bold;">👑 Monopólio! Único no mercado.</span>`;
+                                    cardElement.style.borderLeft = "6px solid #10b981";
+                                    return;
+                                }
+
+                                // 1. MAIS BARATO GERAL (CATEGORIA)
+                                const priceGeneral = getPrice(allCompetitors[0].offer);
+
+                                // 2. RIVAL DIRETO (MESMO M/S EXATO)
+                                const exactCompetitors = allCompetitors.filter(comp => {
+                                    const compMsAttr = comp.offer.attributes?.find(a => a.id === 'steal-a-brainrot-ms-numeric');
+                                    return compMsAttr && Math.abs(Number(compMsAttr.value) - myExactMs) < 0.1;
+                                });
+
+                                const cheapestExact = exactCompetitors[0];
+                                const priceExact = cheapestExact ? getPrice(cheapestExact.offer) : null;
+
+                                // --- DENTRO DO FETCH NO MEUS_PETS.HTML ---
+
+                                box.innerHTML = `
+                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                        <div style="padding-bottom: 5px; border-bottom: 1px dashed #333;">
+                                            <div style="font-size: 11px; color: var(--text-muted);">Menor da Categoria:</div>
+                                            <div style="font-size: 14px; font-weight: bold; color: ${priceGeneral < myPrice ? '#ef4444' : '#10b981'}">
+                                                $${priceGeneral.toFixed(2)}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div style="font-size: 11px; color: var(--text-muted);">Rival Direto (${myExactMs} M/s):</div>
+                                            ${cheapestExact ? `
+                                                <div style="font-size: 14px; font-weight: bold; color: ${priceExact < myPrice ? '#ef4444' : '#10b981'}">
+                                                    $${priceExact.toFixed(2)} 
+                                                    <span style="font-size:10px; font-weight:normal; color:#f59e0b;">[${cheapestExact.offer.attributes?.find(a => a.id === 'steal-a-brainrot-mutations')?.value.name || 'None'}]</span>
+                                                </div>
+                                                
+                                                ${priceExact <= myPrice ? `
+                                                    <div style="display: flex; gap: 5px; margin-top: 8px;">
+                                                        <button onclick="updatePrice('${item.id}', ${priceExact - 0.01})" 
+                                                                title="Abaixar 1 centavo do rival"
+                                                                style="flex: 1; background: #ef4444; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold;">
+                                                            - $0.01
+                                                        </button>
+                                                        <button onclick="updatePrice('${item.id}', ${priceExact - 0.05})" 
+                                                                title="Abaixar 5 centavos do rival"
+                                                                style="flex: 1; background: #b91c1c; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold;">
+                                                            - $0.05
+                                                        </button>
+                                                    </div>
+                                                ` : ''}
+                                                
+                                            ` : `<div style="color:#10b981; font-weight:bold; font-size:13px;">👑 Único com esse M/s!</div>`}
+                                        </div>
+                                    </div>
+                                `;
+                                // Borda do card: Vermelha se alguém com mesmo M/s estiver mais barato
+                                cardElement.style.borderLeft = (priceExact && priceExact < myPrice) ? "6px solid #ef4444" : "6px solid #10b981";
+                            });
+                    }
+                });
+
+            } catch (error) {
+                loader.innerHTML = "❌ Falha no painel.";
+            }
+        }
+
+        carregarMeusPets();
+
+        async function updatePrice(offerId, newPrice) {
+            if (!confirm(`Deseja alterar o preço para $${newPrice.toFixed(2)}?`)) return;
+
+            try {
+                const res = await fetch(`/api/update-price/${offerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json' // OBRIGATÓRIO para o Express entender
+                    },
+                    body: JSON.stringify({ newPrice: newPrice })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert("✅ Preço atualizado!");
+                    location.reload();
+                } else {
+                    alert("❌ Erro: " + data.message);
+                }
+            } catch (err) {
+                alert("❌ Falha na conexão.");
+            }
+        }
+    </script>
+</body>
+
+<style>
+    .main-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #161b22;
+        border-bottom: 1px solid #2d333b;
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        padding: 15px 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-link {
+        color: #8b949e;
+        text-decoration: none;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .nav-link:hover {
+        color: #58a6ff;
+    }
+
+    .nav-link.active {
+        color: #ffffff;
+        border-bottom: 2px solid #58a6ff;
+    }
+
+    /* Ajuste para o conteúdo não ficar escondido atrás do header */
+    body {
+        padding-top: 70px !important;
+    }
+</style>
+
+<nav class="main-nav">
+    <a href="/" class="nav-link" id="nav-postar">🚀 Postar Pet</a>
+    <a href="/meus_pets.html" class="nav-link" id="nav-espionar">🕵️ Espionar Rivais</a>
+</nav>
+
+<script>
+    // Marcar qual página está ativa no menu
+    const path = window.location.pathname;
+    if (path === '/' || path.includes('index.html')) document.getElementById('nav-postar').classList.add('active');
+    if (path.includes('market.html')) document.getElementById('nav-vitrine').classList.add('active');
+    if (path.includes('meus_pets.html')) document.getElementById('nav-espionar').classList.add('active');
+</script>
+
+</html>
